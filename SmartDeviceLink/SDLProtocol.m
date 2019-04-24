@@ -48,6 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nullable, strong, nonatomic) SDLProtocolReceivedMessageRouter *messageRouter;
 @property (strong, nonatomic) NSMutableDictionary<SDLServiceTypeBox *, SDLProtocolHeader *> *serviceHeaders;
 @property (assign, nonatomic) int32_t hashId;
+@property (strong, nonatomic, nullable) NSTimer *heartbeatTimer;
 
 // Readonly public properties
 @property (strong, nonatomic, readwrite, nullable) NSString *authToken;
@@ -62,17 +63,18 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark - Lifecycle
 
 - (instancetype)init {
-    if (self = [super init]) {
-        _messageID = 0;
-        _hashId = SDLControlFrameInt32NotFound;
-        _receiveQueue = dispatch_queue_create("com.sdl.protocol.receive", DISPATCH_QUEUE_SERIAL);
-        _sendQueue = dispatch_queue_create("com.sdl.protocol.transmit", DISPATCH_QUEUE_SERIAL);
-        _prioritizedCollection = [[SDLPrioritizedObjectCollection alloc] init];
-        _protocolDelegateTable = [NSHashTable weakObjectsHashTable];
-        _serviceHeaders = [[NSMutableDictionary alloc] init];
-        _messageRouter = [[SDLProtocolReceivedMessageRouter alloc] init];
-        _messageRouter.delegate = self;
-    }
+    self = [super init];
+    if (!self) { return nil; }
+
+    _messageID = 0;
+    _hashId = SDLControlFrameInt32NotFound;
+    _receiveQueue = dispatch_queue_create("com.sdl.protocol.receive", DISPATCH_QUEUE_SERIAL);
+    _sendQueue = dispatch_queue_create("com.sdl.protocol.transmit", DISPATCH_QUEUE_SERIAL);
+    _prioritizedCollection = [[SDLPrioritizedObjectCollection alloc] init];
+    _protocolDelegateTable = [NSHashTable weakObjectsHashTable];
+    _serviceHeaders = [[NSMutableDictionary alloc] init];
+    _messageRouter = [[SDLProtocolReceivedMessageRouter alloc] init];
+    _messageRouter.delegate = self;
 
     return self;
 }
@@ -110,6 +112,9 @@ NS_ASSUME_NONNULL_BEGIN
             [listener onProtocolOpened];
         }
     }
+
+    _heartbeatTimer = [NSTimer timerWithTimeInterval:1.0 target:self selector:@selector(sdl_sendHeartbeatForSession) userInfo:nil repeats:YES];
+    [[NSRunLoop mainRunLoop] addTimer:_heartbeatTimer forMode:NSRunLoopCommonModes];
 }
 
 - (void)onTransportDisconnected {
@@ -122,6 +127,9 @@ NS_ASSUME_NONNULL_BEGIN
             [listener onProtocolClosed];
         }
     }
+
+    [_heartbeatTimer invalidate];
+    _heartbeatTimer = nil;
 }
 
 - (void)onDataReceived:(NSData *)receivedData {
@@ -570,6 +578,16 @@ NS_ASSUME_NONNULL_BEGIN
             [listener handleProtocolRegisterSecondaryTransportNAKMessage:registerSecondaryTransportNAK];
         }
     }
+}
+
+- (void)sdl_sendHeartbeatForSession {
+    SDLProtocolHeader *header = [SDLProtocolHeader headerForVersion:(UInt8)[SDLGlobals sharedGlobals].protocolVersion.major];
+    header.frameType = SDLFrameTypeControl;
+    header.serviceType = SDLServiceTypeControl;
+    header.frameData = SDLFrameInfoHeartbeat;
+    header.sessionID = 0;
+    SDLProtocolMessage *message = [SDLProtocolMessage messageWithHeader:header andPayload:nil];
+    [self sdl_sendDataToTransport:message.data onService:header.serviceType];
 }
 
 - (void)handleHeartbeatForSession:(Byte)session {
