@@ -27,6 +27,7 @@
 @class SDLSystemCapability;
 @class SDLSystemCapabilityManager;
 @class SDLVideoStreamingCapability;
+@class SDLDisplayCapability;
 
 @protocol SDLConnectionManagerType;
 
@@ -56,6 +57,12 @@ typedef void (^SDLCapabilityUpdateHandler)(SDLSystemCapability *capability);
  YES if subscriptions are available on the connected head unit. If NO, calls to `subscribeToCapabilityType:withBlock` and `subscribeToCapabilityType:withObserver:selector` will fail.
  */
 @property (assign, nonatomic, readonly) BOOL supportsSubscriptions;
+
+/**
+ * @see SDLDisplayCapability
+ *
+ */
+@property SDLDisplayCapability *displayCapability;
 
 /**
  * @see SDLDisplayCapabilities

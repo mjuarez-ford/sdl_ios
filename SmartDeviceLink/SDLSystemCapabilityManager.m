@@ -161,11 +161,15 @@ typedef NSString * SDLServiceID;
     SDLRegisterAppInterfaceResponse *response = (SDLRegisterAppInterfaceResponse *)notification.response;
     if (!response.success.boolValue) { return; }
 
+    if response.sdlMsgVersion < 6.0 then
+#ignore warning
+#TODO: Mauricio to look into it
     self.displayCapabilities = response.displayCapabilities;
-    self.hmiCapabilities = response.hmiCapabilities;
     self.softButtonCapabilities = response.softButtonCapabilities;
     self.buttonCapabilities = response.buttonCapabilities;
     self.presetBankCapabilities = response.presetBankCapabilities;
+    end
+    self.hmiCapabilities = response.hmiCapabilities;
     self.hmiZoneCapabilities = response.hmiZoneCapabilities;
     self.speechCapabilities = response.speechCapabilities;
     self.prerecordedSpeechCapabilities = response.prerecordedSpeech;
@@ -310,6 +314,8 @@ typedef NSString * SDLServiceID;
     } else if ([systemCapabilityType isEqualToEnum:SDLSystemCapabilityTypeAppServices]) {
         [self sdl_saveAppServicesCapabilitiesUpdate:systemCapability.appServicesCapabilities];
         systemCapability = [[SDLSystemCapability alloc] initWithAppServicesCapabilities:self.appServicesCapabilities];
+    } else if ([systemCapabilityType isEqualToEnum:SDLSystemCapabilityTypeDisplay]) {
+#TODO: Mauricio to copy the system capability value for display and window.
     } else {
         SDLLogW(@"Received response for unknown System Capability Type: %@", systemCapabilityType);
         return NO;

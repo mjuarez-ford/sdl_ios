@@ -74,7 +74,9 @@ UInt32 const MenuCellIdMin = 1;
     _menuCells = @[];
     _oldMenuCells = @[];
     _dynamicMenuUpdatesMode = SDLDynamicMenuUpdatesModeOnWithCompatibility;
-
+    
+    
+    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sdl_registerResponse:) name:SDLDidReceiveRegisterAppInterfaceResponse object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sdl_displayLayoutResponse:) name:SDLDidReceiveSetDisplayLayoutResponse object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sdl_hmiStatusNotification:) name:SDLDidChangeHMIStatusNotification object:nil];
